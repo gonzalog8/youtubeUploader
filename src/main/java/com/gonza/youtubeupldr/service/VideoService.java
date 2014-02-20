@@ -32,12 +32,12 @@ public class VideoService {
         this.uploadVideo = uploadVideo;
     }
     
-    public void uploadStaticVideo(){
+    public void uploadStaticVideo(String accessToken, String refreshToken){
     	logger.info("uploadVideo service is :" + (uploadVideo == null ? " null!!" : " not null"));
-    	uploadVideo.init(null);
+    	uploadVideo.init(null, accessToken, refreshToken);
     }
     
-	public String saveMultipartToDisk(String uploadId, MultipartFile file) throws Exception {
+	public String saveMultipartToDisk(String uploadId, MultipartFile file, String accessToken, String refreshToken) throws Exception {
 		Date time = Calendar.getInstance().getTime();
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss:S");
         logger.info("Saving file to own server starts at: " + sdf.format(time));
@@ -52,7 +52,7 @@ public class VideoService {
         file.transferTo(multipartFile);
         time = Calendar.getInstance().getTime();
         logger.info("Saving file to own server finished at: " + sdf.format(time));
-        String youtubeUrl = uploadVideo.init(filePath+"/"+file.getOriginalFilename());
+        String youtubeUrl = uploadVideo.init(filePath+"/"+file.getOriginalFilename(), accessToken, refreshToken);
         time = Calendar.getInstance().getTime();
         logger.info("Saving file to youtube finished at: " + sdf.format(time));
         return youtubeUrl;
@@ -67,7 +67,7 @@ public class VideoService {
     
     public String calculateUploadId(){
     	Date today = Calendar.getInstance().getTime();
-    	SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+    	SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_hh.mm.ss");
     	logger.info("uploadId: " + sdf.format(today));
     	
     	return sdf.format(today);

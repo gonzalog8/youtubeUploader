@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.google.api.client.auth.oauth2.Credential;
+import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.client.googleapis.media.MediaHttpUploader;
 import com.google.api.client.googleapis.media.MediaHttpUploaderProgressListener;
@@ -57,7 +58,7 @@ public class UploadVideo {
 	 * @param args
 	 *            command line args (not used).
 	 */
-	public static String init(String completeFileName) {
+	public static String init(String completeFileName, String accessToken, String refreshToken) {
 
 		// This OAuth 2.0 access scope allows an application to upload files
 		// to the authenticated user's YouTube channel, but doesn't allow
@@ -66,13 +67,24 @@ public class UploadVideo {
 		List<String> scopes = Lists.newArrayList("https://www.googleapis.com/auth/youtube.upload");
 
 		try {
+			Credential credential;
 			// Authorize the request.
 			logger.info("Authorize the request.");
-			Credential credential = Auth.authorize(scopes, "uploadvideo");
+			
+			if(accessToken == null){
+				logger.info("Authentincating via client_secrets");
+				credential = Auth.authorize(scopes, "uploadvideo");
+			}else{
+				logger.info("Authenticating via token: " + accessToken);
+				credential = new GoogleCredential().setAccessToken(accessToken);
+			}
 			
 			// This object is used to make YouTube Data API requests.
 			logger.info("Create object used to make YouTube Data API requests.");
-			youtube = new YouTube.Builder(Auth.HTTP_TRANSPORT, Auth.JSON_FACTORY, credential).setApplicationName("API Project").build();
+			youtube = new YouTube.Builder(Auth.HTTP_TRANSPORT, Auth.JSON_FACTORY, credential)
+					.setApplicationName("VideoReview")
+					.setHttpRequestInitializer(credential)
+					.build();
 
 			logger.info("Uploading: " + SAMPLE_VIDEO_FILENAME);
 
