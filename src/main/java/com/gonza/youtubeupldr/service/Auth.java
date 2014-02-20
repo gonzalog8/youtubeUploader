@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.auth.oauth2.StoredCredential;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
-import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
 import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
 import com.google.api.client.http.HttpTransport;
@@ -51,28 +50,34 @@ public class Auth {
      * @param credentialDatastore name of the credential datastore to cache OAuth tokens
      */
     public static Credential authorize(List<String> scopes, String credentialDatastore) throws IOException {
-
-        // Load client secrets.
-    	logger.info("Load client secrets");
-        Reader clientSecretReader = new InputStreamReader(Auth.class.getResourceAsStream("/client_secrets.json"));
-        GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, clientSecretReader);
-
-        // This creates the credentials datastore at ~/.oauth-credentials/${credentialDatastore}
-        logger.info("This creates the credentials datastore ");
-        FileDataStoreFactory fileDataStoreFactory = new FileDataStoreFactory(new File(System.getProperty("user.home") + "/" + CREDENTIALS_DIRECTORY));
-        DataStore<StoredCredential> datastore = fileDataStoreFactory.getDataStore(credentialDatastore);
-
-        logger.info("GoogleAuthorizationCodeFlow");
-        GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
-                HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, scopes).setCredentialDataStore(datastore)
-                .build();
-
-        // Build the local server and bind it to port 8080
-        logger.info("Build the local server and bind it to port 8088");
-        LocalServerReceiver localReceiver = new LocalServerReceiver.Builder().setPort(8080).build();
-
-        // Authorize.
-        logger.info("Authorize");
-        return new AuthorizationCodeInstalledApp(flow, localReceiver).authorize("user");
+    	MyLocalServerReceiver localReceiver = new MyLocalServerReceiver();
+    	GoogleAuthorizationCodeFlow flow = null;
+    	try {
+	        // Load client secrets.
+	    	logger.info("Load client secrets");
+	        Reader clientSecretReader = new InputStreamReader(Auth.class.getResourceAsStream("/client_secrets.json"));
+	        GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, clientSecretReader);
+	
+	        // This creates the credentials datastore at ~/.oauth-credentials/${credentialDatastore}
+	        logger.info("This creates the credentials datastore ");
+	        FileDataStoreFactory fileDataStoreFactory = new FileDataStoreFactory(new File(System.getProperty("user.home") + "/" + CREDENTIALS_DIRECTORY));
+	        DataStore<StoredCredential> datastore = fileDataStoreFactory.getDataStore(credentialDatastore);
+	
+	        logger.info("GoogleAuthorizationCodeFlow");
+	        flow = new GoogleAuthorizationCodeFlow.Builder(
+	                HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, scopes).setCredentialDataStore(datastore)
+	                .setAccessType("offline")
+	                .build();
+	
+	        // Build the local server and bind it to port 8080
+	        logger.info("Build the local server and bind it to port 8088");
+	        localReceiver = new MyLocalServerReceiver.Builder().setPort(8080).build();
+	        
+	        // Authorize.
+	        logger.info("Authorize");
+    		} finally {
+		    	localReceiver.stop();
+		    	return new AuthorizationCodeInstalledApp(flow, localReceiver).authorize("user");
+	      }
     }
 }
